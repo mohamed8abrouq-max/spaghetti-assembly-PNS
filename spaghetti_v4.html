@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpaghettiFlow — TE Connectivity Tanger</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@400;500&family=JetBrains+Mono:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0c10;--surface:#111318;--border:#1e2230;--border2:#2e3a4a;
+  --text:#e2e8f0;--muted:#5a6478;
+  --accent:#f0c428;--green:#28c870;--teal:#28b8a8;--blue:#38bdf8;--purple:#7858d8;
+  --shared:#ff4444;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;-webkit-font-smoothing:antialiased}
+
+/* ── HEADER ── */
+#header{position:fixed;top:0;left:0;right:0;height:52px;background:rgba(10,12,16,.98);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 14px;z-index:200;gap:12px}
+.te-logo{flex-shrink:0;border-radius:3px}
+.te-divider{width:1px;height:28px;background:var(--border);margin:0 2px}
+.hdr-title{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;color:#e87722;letter-spacing:1.5px;text-transform:uppercase}
+.hdr-stats{display:flex;gap:18px;align-items:center;margin-left:auto}
+.stat-val{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--accent);line-height:1}
+.stat-lbl{font-size:9px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-top:2px}
+.hdr-btns{display:flex;gap:5px;margin-left:14px}
+.hbtn{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:600;letter-spacing:.8px;padding:5px 10px;border-radius:4px;cursor:pointer;transition:all .15s;text-transform:uppercase;border:none;display:flex;align-items:center;gap:5px}
+.hbtn-accent{background:var(--accent);color:#000}
+.hbtn-accent:hover{background:#ffd83a}
+.hbtn-outline{background:transparent;border:1px solid var(--border2);color:var(--text)}
+.hbtn-outline:hover{border-color:var(--accent);color:var(--accent)}
+.hbtn-outline.active{border-color:var(--accent);color:var(--accent);background:rgba(240,196,40,.08)}
+.dot-pulse{width:6px;height:6px;border-radius:50%;background:currentColor;animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.6)}}
+
+/* ── SIDEBAR ── */
+#sidebar{position:fixed;left:0;top:52px;bottom:0;width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:150;overflow:hidden;transition:width .25s}
+#sidebar.collapsed{width:0}
+#sidebar.collapsed *{opacity:0;pointer-events:none}
+.sb-inner{width:220px;overflow-y:auto;overflow-x:hidden;flex:1;padding:16px 0}
+.sb-inner::-webkit-scrollbar{width:3px}
+.sb-inner::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+.sidebar-title{font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);padding:0 20px 10px;font-weight:600}
+.search-bar{padding:0 20px 10px}
+.search-input{width:100%;padding:7px 10px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:11px;outline:none}
+.search-input::placeholder{color:var(--muted)}
+.search-input:focus{border-color:rgba(56,189,248,.4)}
+.machine-btn{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;transition:background .15s;border:none;background:none;width:100%;text-align:left;color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;letter-spacing:.5px}
+.machine-btn:hover{background:rgba(255,255,255,.04)}
+.machine-btn.active{background:rgba(240,196,40,.07);border-left:2px solid var(--accent)}
+.machine-btn .m-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.m-info{display:flex;flex-direction:column}
+.m-name{font-size:13px;font-weight:700}
+.m-sub{font-size:9px;color:var(--muted);margin-top:1px;font-family:'Share Tech Mono',monospace}
+.sb-sep{height:1px;background:var(--border);margin:12px 20px}
+.btn-all{display:block;width:calc(100% - 40px);margin:0 20px 8px;padding:8px;background:rgba(240,196,40,.08);border:1px solid rgba(240,196,40,.3);border-radius:4px;color:var(--accent);font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;cursor:pointer;text-align:center;transition:all .15s;letter-spacing:.5px}
+.btn-all:hover{background:rgba(240,196,40,.15)}
+
+/* Legend in sidebar */
+.legend-section{padding:14px 20px 0}
+.legend-title{font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--muted);margin-bottom:10px;font-weight:600}
+.legend-item{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--muted);margin-bottom:6px;font-family:'Barlow',sans-serif}
+.legend-line{width:24px;height:2px;border-radius:1px;flex-shrink:0}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* ── TOGGLE ── */
+#sb-toggle{position:fixed;left:220px;top:50%;transform:translateY(-50%);width:17px;height:34px;background:var(--surface);border:1px solid var(--border);border-left:none;border-radius:0 4px 4px 0;cursor:pointer;z-index:151;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:left .25s,color .12s;font-size:11px}
+#sb-toggle:hover{color:var(--accent)}
+
+/* ── MAIN CANVAS AREA ── */
+#main-area{position:fixed;left:220px;top:52px;right:0;bottom:0;overflow:auto;transition:left .25s}
+#main-area.full{left:0}
+#canvas{display:block;cursor:grab}
+#canvas:active{cursor:grabbing}
+
+/* ── CONTROL PANEL ── */
+#ctrl-panel{position:fixed;right:13px;top:64px;background:rgba(10,12,16,.97);border:1px solid var(--border);border-radius:8px;padding:11px;z-index:160;width:186px}
+.ctrl-title{font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:7px;font-weight:600}
+.ctrl-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.ctrl-lbl{font-size:11px;color:var(--text)}
+.ctrl-slider{width:72px;accent-color:var(--accent);height:3px;cursor:pointer}
+.ctrl-val{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--accent);min-width:30px;text-align:right}
+.ctrl-sep{height:1px;background:var(--border);margin:7px 0}
+.cb-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;cursor:pointer}
+.cb-row input{accent-color:var(--accent)}
+.cb-lbl{font-size:11px;color:var(--text)}
+
+/* ── ZOOM + LEGEND BOTTOM RIGHT ── */
+#br-panel{position:fixed;right:13px;bottom:16px;z-index:160;display:flex;flex-direction:column;align-items:flex-end;gap:7px}
+#zoom-row{display:flex;gap:4px;align-items:center}
+.zbtn{width:32px;height:32px;background:rgba(10,12,16,.97);border:1px solid var(--border2);border-radius:4px;cursor:pointer;font-size:16px;color:var(--text);display:flex;align-items:center;justify-content:center;transition:all .12s;font-family:'Barlow Condensed',sans-serif;font-weight:700;user-select:none}
+.zbtn:hover{border-color:var(--accent);color:var(--accent)}
+#zoom-lbl{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--muted);line-height:32px;padding:0 4px}
+
+/* ── TOOLTIP ── */
+#tooltip{position:fixed;pointer-events:none;background:rgba(10,12,16,.97);border:1px solid var(--border2);border-radius:6px;padding:9px 13px;z-index:300;max-width:260px;opacity:0;transition:opacity .15s;backdrop-filter:blur(8px)}
+#tooltip.show{opacity:1}
+.tt-title{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;color:var(--accent);margin-bottom:4px}
+.tt-row{display:flex;justify-content:space-between;gap:14px;margin-bottom:3px}
+.tt-lbl{color:var(--muted);font-size:11px}
+.tt-val{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text)}
+.tt-badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:9px;font-weight:600;margin-top:5px;background:rgba(255,68,68,.15);color:#ff6b6b;border:1px solid rgba(255,68,68,.3)}
+
+/* ── TE WATERMARK ── */
+#te-wm{position:fixed;left:232px;bottom:14px;z-index:90;display:flex;align-items:center;gap:5px;opacity:.2;pointer-events:none;transition:left .25s}
+#te-wm.full{left:12px}
+#te-wm span{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.5px;color:#e87722;text-transform:uppercase}
+
+/* Node labels */
+.col-header{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;text-transform:uppercase;letter-spacing:2.5px}
+</style>
+</head>
+<body>
+
+<!-- ══ HEADER ══ -->
+<header id="header">
+  <!-- TE Connectivity logo -->
+  <svg class="te-logo" viewBox="0 0 108 44" width="90" height="37">
+    <rect width="108" height="44" fill="#e87722"/>
+    <rect x="5" y="6" width="34" height="9" rx="4.5" fill="white"/>
+    <rect x="5" y="18" width="26" height="9" rx="4.5" fill="white"/>
+    <rect x="5" y="30" width="18" height="9" rx="4.5" fill="white"/>
+    <text x="44" y="32" font-family="'Arial Black',Impact,sans-serif" font-size="25" font-weight="900" font-style="italic" fill="white" letter-spacing="-2">TE</text>
+    <text x="45" y="42" font-family="Arial,sans-serif" font-size="9" font-style="italic" fill="white">connectivity</text>
+  </svg>
+  <div class="te-divider"></div>
+  <span class="hdr-title">Tanger</span>
+
+  <div class="hdr-stats">
+    <div><div class="stat-val" id="s-machines">9</div><div class="stat-lbl">Machines</div></div>
+    <div><div class="stat-val" id="s-fgs">—</div><div class="stat-lbl">FG PNs</div></div>
+    <div><div class="stat-val" id="s-parts">—</div><div class="stat-lbl">Part PNs</div></div>
+    <div><div class="stat-val" id="s-shared" style="color:#ff6b6b">12</div><div class="stat-lbl">Shared PNs</div></div>
+  </div>
+
+  <div class="hdr-btns">
+    <button class="hbtn hbtn-outline active" id="btn-fg" onclick="setMode('fg')">— FG Flows</button>
+    <button class="hbtn hbtn-outline" id="btn-shared" onclick="setMode('shared')">◎ Common PNs</button>
+    <button class="hbtn hbtn-outline" onclick="resetZoom()">↺ Reset</button>
+    <button class="hbtn hbtn-accent" id="btn-anim" onclick="toggleAnimate()"><span class="dot-pulse" id="anim-dot" style="animation-play-state:paused"></span> Animate</button>
+  </div>
+</header>
+
+<!-- ══ SIDEBAR TOGGLE ══ -->
+<div id="sb-toggle" onclick="toggleSidebar()">‹</div>
+
+<!-- ══ SIDEBAR ══ -->
+<nav id="sidebar">
+  <div class="sb-inner">
+    <div class="sidebar-title">Machines</div>
+    <div class="search-bar">
+      <input class="search-input" id="search" placeholder="Search PN…" autocomplete="off">
+    </div>
+    <div style="height:6px"></div>
+    <button class="btn-all" onclick="selectAll()">Show All</button>
+    <div id="machine-list"></div>
+
+    <div class="sb-sep"></div>
+    <div class="legend-section">
+      <div class="legend-title">Legend</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(40,200,112,.15);border:2px solid #28c870"></div> Mold (interne)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(58,80,96,.15);border:2px dashed #3a5060"></div> EXTERN</div>
+      <div class="legend-item"><div class="legend-line" style="background:#28c870;opacity:.6"></div> Mold → Part flow</div>
+      <div class="legend-item"><div class="legend-line" style="background:rgba(255,255,255,.2)"></div> Part flow</div>
+      <div class="legend-item"><div class="legend-line" style="background:#ff4444"></div> Shared PN</div>
+      <div class="legend-item"><div class="legend-dot" style="background:rgba(56,189,248,.15);border:2px solid rgba(56,189,248,.4)"></div> Component PN</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#2a3550;border:2px solid #38bdf8"></div> Finished Good PN</div>
+    </div>
+  </div>
+</nav>
+
+<!-- ══ MAIN CANVAS ══ -->
+<div id="main-area">
+  <svg id="canvas"></svg>
+</div>
+
+<!-- ══ CONTROL PANEL ══ -->
+<div id="ctrl-panel">
+  <div class="ctrl-title">Display</div>
+  <div class="ctrl-row">
+    <span class="ctrl-lbl">Opacity</span>
+    <input type="range" class="ctrl-slider" min="10" max="100" value="75" id="sl-opacity" oninput="setOpacity(this.value)">
+    <span class="ctrl-val" id="v-opacity">75%</span>
+  </div>
+  <div class="ctrl-row">
+    <span class="ctrl-lbl">Width</span>
+    <input type="range" class="ctrl-slider" min="1" max="5" value="1" step=".5" id="sl-width" oninput="setWidth(this.value)">
+    <span class="ctrl-val" id="v-width">1×</span>
+  </div>
+  <div class="ctrl-row">
+    <span class="ctrl-lbl">Speed</span>
+    <input type="range" class="ctrl-slider" min="1" max="6" value="2" id="sl-speed" oninput="setSpeed(this.value)">
+    <span class="ctrl-val" id="v-speed">2×</span>
+  </div>
+  <div class="ctrl-sep"></div>
+  <div class="ctrl-title">Filters</div>
+  <label class="cb-row"><input type="checkbox" checked id="cb-shared" onchange="render()"><span class="cb-lbl" style="color:#ff6b6b">⬤ Shared PNs</span></label>
+  <label class="cb-row"><input type="checkbox" checked id="cb-normal" onchange="render()"><span class="cb-lbl" style="color:var(--muted)">⬤ Normal flows</span></label>
+  <label class="cb-row"><input type="checkbox" checked id="cb-mold" onchange="render()"><span class="cb-lbl" style="color:#28c870">⬤ Mold flows</span></label>
+  <label class="cb-row"><input type="checkbox" checked id="cb-fg" onchange="render()"><span class="cb-lbl" style="color:var(--blue)">⬤ FG flows</span></label>
+</div>
+
+<!-- ══ BOTTOM-RIGHT: zoom ══ -->
+<div id="br-panel">
+  <div id="zoom-row">
+    <div class="zbtn" onclick="zoomStep(0.83)" title="Zoom out">−</div>
+    <div class="zbtn" style="font-size:13px" onclick="resetZoom()" title="Reset zoom">⌂</div>
+    <div class="zbtn" onclick="zoomStep(1.2)" title="Zoom in">+</div>
+    <div id="zoom-lbl">100%</div>
+  </div>
+</div>
+
+<!-- ══ TE WATERMARK ══ -->
+<div id="te-wm">
+  <svg width="18" height="18" viewBox="0 0 108 44">
+    <rect width="108" height="44" fill="#e87722"/>
+    <rect x="5" y="6" width="34" height="9" rx="4.5" fill="white"/>
+    <rect x="5" y="18" width="26" height="9" rx="4.5" fill="white"/>
+    <rect x="5" y="30" width="18" height="9" rx="4.5" fill="white"/>
+    <text x="44" y="32" font-family="'Arial Black',sans-serif" font-size="25" font-weight="900" font-style="italic" fill="white" letter-spacing="-2">TE</text>
+    <text x="45" y="42" font-family="Arial,sans-serif" font-size="9" font-style="italic" fill="white">connectivity</text>
+  </svg>
+  <span>TE Connectivity · Tanger</span>
+</div>
+
+<!-- ══ TOOLTIP ══ -->
+<div id="tooltip"><div class="tt-title" id="tt-title"></div><div id="tt-body"></div></div>
+
+<script>
+// ====== DATA ======
+const RAW = {"machines":["A-200","A-800","A-801","A-802","A-910","A-911","A-912","A750","MANUAL"],"machine_fgs":{"A-800":["1-1670916-1","1-1718888-1","1-2289032-1","1-2289032-2","1-2289033-1","1-2289033-3","1-2292481-1","2-1670916-1","2-2289032-1","2-2289032-2","2-2289033-1"],"A-801":["1-1670916-1","1-1670917-1","1-1718888-1","1-2289032-1","1-2289032-2","1-2289033-1","1-2289033-3","1-2292481-1","2-1670916-1","2-1670917-1","2-2289032-1","2-2289032-2","2-2289033-1"],"A-802":["1-2236343-1","1-2236343-5","2-2236343-1","2-2236343-5","3-2236343-1","3-2236343-5"],"A-910":["1-1379913-1","1-1379913-2","1379913-1","1379913-2"],"A-911":["1-967644-1"],"A-912":["1-967644-1"],"A-200":["1-1355200-1","1-1355338-1","1418589-1","2-1355200-1","2-1355200-2","2-1355338-1","3-1355200-1"],"A750":["1-2452750-1","1-2452750-3","1-2452750-4","2452750-1","2452750-2","2452750-3","2452750-4","2452750-6","2452750-7"],"MANUAL":["2466377-1","2466377-2"]},"fg_parts":{"1-2289033-1":["1-1718652-1","1718651-2","1718653-1","1718654-1","1718655-1"],"2-2289032-1":["1718648-1","1718649-1","1718650-1","1718651-2","2-1718647-1"],"1-1718888-1":["1-1718647-1","1718648-1","1718649-1","1718650-1","1718651-2"],"1-2289032-2":["1-1718647-1","1718648-1","1718649-1","1718650-1","1718651-2"],"1-2289032-1":["1-1718647-1","1718648-1","1718649-1","1718650-1","1718651-2"],"1-2289033-3":["1-1718652-1","1718651-2","1718653-1","1718654-1","1718655-1"],"1-2292481-1":["1-1718652-1","1718651-4","1718653-1","1718654-1","1718655-1"],"2-2289032-2":["1718648-1","1718649-1","1718650-1","1718651-2","2-1718647-1"],"2-2289033-1":["1718651-2","1718653-1","1718654-1","1718655-1","2-1718652-1"],"1-1670916-1":["1-1718647-1","1718648-1","1718649-1","1718650-1"],"2-1670916-1":["1718648-1","1718649-1","1718650-1","2-1718647-1"],"1-1670917-1":["1-1718652-1","1718653-1","1718654-1","1718655-1"],"2-1670917-1":["1718653-1","1718654-1","1718655-1","2-1718652-1"],"1-2236343-5":["1-1718652-1","1718654-1","2236344-1","2282166-1","2286483-1"],"1-2236343-1":["1718654-1","2236344-1","2282166-1","2286483-1"],"2-2236343-5":["1718654-1","2-1718652-1","2236344-1","2282166-1","2286483-1"],"2-2236343-1":["1718654-1","2236344-1","2282166-1","2286483-1"],"3-2236343-5":["1718654-1","2236344-1","2282166-1","2286483-1","3-1718652-1"],"3-2236343-1":["1718654-1","2236344-1","2282166-1","2286483-1"],"1379913-1":["1-1379912-2","1379911-1"],"1-1379913-1":["1-1379911-1","1-1379912-2"],"1379913-2":["1-1379912-2","1379911-2"],"1-1379913-2":["1-1379911-2","1-1379912-2"],"1-967644-1":["1-968336-2","1-968400-1","1-968791-1","1718555-1","1968398-1","965323-1","965335-1","967083-1","967097-1","967645-1","968337-2","968339-2","968398-1","968399-1"],"1-1355338-1":["1-1355339-1","1355340-1","1355341-1","973057-2"],"2-1355338-1":["1355340-1","2-1355339-1"],"2-1355200-1":["1355340-1","2-1355202-1","2-1355206-1","973057-2"],"1-1355200-1":["1-1355202-1","1-1355206-1","1355340-1","973057-2"],"2-1355200-2":["1355340-1","2-1355202-1","2-1355206-1","973057-2"],"3-1355200-1":["1355340-1","3-1355202-1","3-1355206-1","973057-2"],"1418589-1":["1355340-1","1418588-1","1418590-1","1418591-1"],"2452750-1":["0-740030-3","0-973058-3","2348657-1","2415531-1","2452751-1"],"1-2452750-1":["0-740030-3","0-973058-3","2348657-1","2415531-1","2452751-1"],"2452750-2":["0-740030-3","0-973058-3","2348657-1","2415531-1","2452751-2"],"2452750-3":["0-740030-3","0-973058-3","2348657-1","2415531-1","2452751-1"],"1-2452750-3":["0-740030-3","0-973058-3","2348657-1","2415531-1","2452751-1"],"2452750-4":["0-740030-3","0-973058-3","2348657-1","2415531-1","2452751-1"],"1-2452750-4":["0-740030-3","0-973058-3","2348657-1","2415531-1","2452751-1"],"2452750-6":["0-740030-3","0-973058-3","2348657-1","2415531-1","2452752-6"],"2452750-7":["0-740030-3","0-973058-3","2348657-1","2415531-1","2452752-7"],"2466377-1":["2466389-1","2466392-1"],"2466377-2":["2466386-1","2466386-2"]},"fg_to_machine":{"1-2289033-1":"A-800","2-2289032-1":"A-800","1-1718888-1":"A-800","1-2289032-2":"A-800","1-2289032-1":"A-800","1-2289033-3":"A-800","1-2292481-1":"A-800","2-2289032-2":"A-800","2-2289033-1":"A-800","1-1670916-1":"A-801","2-1670916-1":"A-801","1-1670917-1":"A-801","2-1670917-1":"A-801","1-2236343-5":"A-802","1-2236343-1":"A-802","2-2236343-5":"A-802","2-2236343-1":"A-802","3-2236343-5":"A-802","3-2236343-1":"A-802","1379913-1":"A-910","1-1379913-1":"A-910","1379913-2":"A-910","1-1379913-2":"A-910","1-967644-1":"A-911","1-1355338-1":"A-200","2-1355338-1":"A-200","2-1355200-1":"A-200","1-1355200-1":"A-200","2-1355200-2":"A-200","3-1355200-1":"A-200","1418589-1":"A-200","2452750-1":"A750","1-2452750-1":"A750","2452750-2":"A750","2452750-3":"A750","1-2452750-3":"A750","2452750-4":"A750","1-2452750-4":"A750","2452750-6":"A750","2452750-7":"A750","2466377-1":"MANUAL","2466377-2":"MANUAL"},"shared_parts":{"1718651-2":["A-800","A-801"],"1718653-1":["A-800","A-801"],"1718654-1":["A-800","A-801","A-802"],"1718655-1":["A-800","A-801"],"1-1718652-1":["A-800","A-801","A-802"],"1718648-1":["A-800","A-801"],"1718649-1":["A-800","A-801"],"1718650-1":["A-800","A-801"],"2-1718647-1":["A-800","A-801"],"1-1718647-1":["A-800","A-801"],"1718651-4":["A-800","A-801"],"2-1718652-1":["A-800","A-801","A-802"]}};
+
+const PART_MOLD = {"1718651-2":"EXTERN","1718653-1":"21-1814236","1718654-1":"21-1814233","1718655-1":"EXTERN","1-1718652-1":"21-1884102","1718648-1":"21-1814282","1718649-1":"21-1814233","1718650-1":"EXTERN","2-1718647-1":"21-1814228","1-1718647-1":"21-1096314","1718651-4":"EXTERN","2-1718652-1":"21-1814230","2236344-1":"21-1959453","2282166-1":"EXTERN","2286483-1":"21-1018352","3-1718652-1":"21-1884102","1379911-1":"21-1780076","1-1379912-2":"EXTERN","1-1379911-1":"21-1780076","1379911-2":"21-1775751","1-1379911-2":"21-1775751","967645-1":"EXTERN","968337-2":"EXTERN","968339-2":"EXTERN","1-968336-2":"EXTERN","1718555-1":"EXTERN","1-968791-1":"EXTERN","965323-1":"EXTERN","967097-1":"EXTERN","967083-1":"EXTERN","968398-1":"EXTERN","1-968400-1":"EXTERN","968399-1":"EXTERN","965335-1":"EXTERN","1968398-1":"EXTERN","2-1355339-1":"EXTERN","1355340-1":"21-1780245","1-1355339-1":"EXTERN","1355341-1":"EXTERN","973057-2":"EXTERN","1418588-1":"EXTERN","1418590-1":"EXTERN","1418591-1":"EXTERN","2452751-1":"EXTERN","2348657-1":"EXTERN","2415531-1":"EXTERN","0-973058-3":"EXTERN","0-740030-3":"EXTERN","2452751-2":"EXTERN","2452752-6":"EXTERN","2452752-7":"EXTERN","2466392-1":"21-1980628","2466389-1":"21-1980627","2466386-2":"21-1980630","2466386-1":"21-1980630","1-1718652-1":"21-1884102","1-1355202-1":"EXTERN","2-1355202-1":"EXTERN","3-1355202-1":"EXTERN","1-1355206-1":"EXTERN","2-1355206-1":"EXTERN","3-1355206-1":"EXTERN"};
+
+RAW.fg_to_machine["1-967644-1-A912"] = "A-912";
+
+const MACHINE_COLORS = {
+  "A-800":"#38bdf8","A-801":"#818cf8","A-802":"#a78bfa",
+  "A-910":"#fb923c","A-911":"#34d399","A-912":"#6ee7b7",
+  "A-200":"#fbbf24","A750":"#f472b6","MANUAL":"#94a3b8"
+};
+
+// ====== STATE ======
+let activeFilter = null;
+let searchTerm = '';
+let viewMode = 'fg';
+let flowOpacity = 0.75;
+let flowWidth = 1;
+let animSpeed = 2;
+let animating = false;
+let dashOffset = 0;
+let animRaf = null;
+let currentTransform = d3.zoomIdentity;
+let zoomBehavior;
+
+// ====== SIDEBAR ======
+const machineList = document.getElementById('machine-list');
+RAW.machines.forEach(m => {
+  const fgCount = (RAW.machine_fgs[m] || []).length;
+  const partSet = new Set();
+  (RAW.machine_fgs[m] || []).forEach(fg => (RAW.fg_parts[fg] || []).forEach(p => partSet.add(p)));
+  const btn = document.createElement('button');
+  btn.className = 'machine-btn';
+  btn.id = 'btn-m-' + m;
+  btn.innerHTML = `
+    <div class="m-dot" style="background:${MACHINE_COLORS[m]}"></div>
+    <div class="m-info">
+      <span class="m-name">${m}</span>
+      <span class="m-sub">${fgCount} FGs · ${partSet.size} Parts</span>
+    </div>`;
+  btn.onclick = () => selectMachine(m);
+  machineList.appendChild(btn);
+});
+
+function selectMachine(m) {
+  activeFilter = activeFilter === m ? null : m;
+  updateButtons();
+  render();
+}
+function selectAll() { activeFilter = null; updateButtons(); render(); }
+function updateButtons() {
+  RAW.machines.forEach(m => {
+    const b = document.getElementById('btn-m-' + m);
+    if (b) b.classList.toggle('active', activeFilter === m);
+  });
+}
+
+// ====== D3 SETUP ======
+const svg = d3.select('#canvas');
+const mainArea = document.getElementById('main-area');
+
+function getDimensions() {
+  return { w: mainArea.clientWidth, h: Math.max(mainArea.clientHeight, 1000) };
+}
+
+// ====== RENDER ======
+function render() {
+  const { w, h } = getDimensions();
+
+  let visibleMachines = RAW.machines;
+  if (activeFilter) visibleMachines = [activeFilter];
+
+  // In "shared" mode, only show machines with shared PNs
+  if (viewMode === 'shared' && !activeFilter) {
+    const machinesWithShared = new Set();
+    Object.values(RAW.shared_parts).forEach(ms => ms.forEach(m => machinesWithShared.add(m)));
+    visibleMachines = RAW.machines.filter(m => machinesWithShared.has(m));
+  }
+
+  const visibleFGs = new Set();
+  const visibleParts = new Set();
+  visibleMachines.forEach(m => {
+    (RAW.machine_fgs[m] || []).forEach(fg => {
+      visibleFGs.add(fg);
+      (RAW.fg_parts[fg] || []).forEach(p => visibleParts.add(p));
+    });
+  });
+
+  // In shared mode, filter to only shared parts
+  if (viewMode === 'shared') {
+    [...visibleParts].forEach(p => { if (!RAW.shared_parts[p]) visibleParts.delete(p); });
+  }
+
+  let searchFGs = new Set(visibleFGs);
+  let searchParts = new Set(visibleParts);
+  if (searchTerm) {
+    const s = searchTerm.toLowerCase();
+    searchFGs = new Set([...visibleFGs].filter(f => f.toLowerCase().includes(s)));
+    searchParts = new Set([...visibleParts].filter(p => p.toLowerCase().includes(s)));
+  }
+
+  // Filter controls
+  const showShared = document.getElementById('cb-shared').checked;
+  const showNormal = document.getElementById('cb-normal').checked;
+  const showMold   = document.getElementById('cb-mold').checked;
+  const showFGflow = document.getElementById('cb-fg').checked;
+
+  // Layout params
+  const COL_MOLD = 80, COL_P = 360, COL_M = 640, COL_FG = 940;
+  const colW = 180;
+
+  const mCount = visibleMachines.length;
+  const fgArr = [...searchFGs].sort();
+  const partArr = [...searchParts].sort();
+
+  const visibleMolds = new Set();
+  [...searchParts].forEach(p => { const mold = PART_MOLD[p]; if (mold) visibleMolds.add(mold); });
+  const moldArr = [...visibleMolds].sort((a, b) => {
+    if (a === 'EXTERN') return 1; if (b === 'EXTERN') return -1; return a.localeCompare(b);
+  });
+
+  const rowH_M    = Math.max(40, (Math.max(h - 80, 400)) / Math.max(mCount, 1));
+  const rowH_FG   = Math.max(14, (Math.max(h - 60, 400)) / Math.max(fgArr.length, 1));
+  const rowH_P    = Math.max(10, (Math.max(h - 60, 400)) / Math.max(partArr.length, 1));
+  const rowH_MOLD = Math.max(10, (Math.max(h - 60, 400)) / Math.max(moldArr.length, 1));
+
+  const totalH = Math.max(
+    mCount * rowH_M + 60, fgArr.length * rowH_FG + 60,
+    partArr.length * rowH_P + 60, moldArr.length * rowH_MOLD + 60, 600
+  );
+
+  svg.attr('width', COL_FG + colW + 40).attr('height', totalH);
+  svg.selectAll('*').remove();
+
+  const g = svg.append('g').attr('class', 'zoom-g');
+  if (currentTransform) g.attr('transform', currentTransform);
+
+  g.append('defs').append('clipPath').attr('id', 'flow-clip')
+    .append('rect').attr('x', -2000).attr('y', 44).attr('width', 9999).attr('height', 99999);
+
+  const gFlows = g.append('g').attr('clip-path', 'url(#flow-clip)');
+  const gNodes = g.append('g');
+
+  // Dot grid background
+  g.append('rect').attr('x', -5000).attr('y', -5000).attr('width', 15000).attr('height', 15000)
+    .attr('fill', 'url(#dot-grid)').attr('opacity', 0.4);
+  const defs2 = g.insert('defs', ':first-child');
+  const pat = defs2.append('pattern').attr('id', 'dot-grid').attr('width', 30).attr('height', 30).attr('patternUnits', 'userSpaceOnUse');
+  pat.append('circle').attr('cx', 1).attr('cy', 1).attr('r', .8).attr('fill', '#2a3140').attr('opacity', .5);
+
+  // Column headers
+  const headerDefs = [
+    { label: '🔩 MOLD',          x: COL_MOLD, color: '#28c870' },
+    { label: '📦 COMPONENT PN',  x: COL_P,    color: '#38bdf8' },
+    { label: '⚙ MACHINE',        x: COL_M,    color: '#fbbf24' },
+    { label: '✅ FINISHED GOOD', x: COL_FG,   color: '#a78bfa' },
+  ];
+  headerDefs.forEach(({ label, x, color }) => {
+    g.append('rect').attr('x', x - 2).attr('y', 38).attr('width', 180).attr('height', 2).attr('rx', 1).attr('fill', color).attr('opacity', .35);
+    g.append('text').attr('x', x).attr('y', 30).attr('class', 'col-header').attr('fill', color).attr('font-size', 13).attr('letter-spacing', 2).text(label);
+  });
+
+  // Node positions
+  const machinePos = {};
+  visibleMachines.forEach((m, i) => { machinePos[m] = 55 + i * rowH_M + rowH_M / 2; });
+
+  const fgPos = {};
+  fgArr.forEach((fg, i) => { fgPos[fg] = 45 + i * rowH_FG + rowH_FG / 2; });
+
+  const moldPos = {};
+  moldArr.forEach((mold, i) => { moldPos[mold] = 45 + i * rowH_MOLD + rowH_MOLD / 2; });
+
+  const partPos = {};
+  partArr.forEach((p, i) => { partPos[p] = 45 + i * rowH_P + rowH_P / 2; });
+
+  // ── Animation dasharray
+  const DASH = animating ? `8 5` : null;
+  const DASHOFFSET = animating ? dashOffset : null;
+
+  function applyAnim(sel) {
+    if (animating) {
+      sel.attr('stroke-dasharray', DASH).attr('stroke-dashoffset', DASHOFFSET);
+    }
+  }
+
+  // ── MOLD → Part flows
+  if (showMold) {
+    partArr.forEach(part => {
+      const mold = PART_MOLD[part];
+      if (!mold || !moldPos[mold]) return;
+      const py = partPos[part]; if (!py) return;
+      const isExtern = mold === 'EXTERN';
+      const strokeColor = isExtern ? '#6b8aaa' : '#28c870';
+      const opacity = (isExtern ? 0.5 : 0.55) * flowOpacity;
+
+      const path = d3.path();
+      path.moveTo(COL_MOLD + 6, moldPos[mold]);
+      path.bezierCurveTo(COL_MOLD + 90, moldPos[mold], COL_P - 90, py, COL_P - 6, py);
+
+      const el = gFlows.append('path')
+        .attr('d', path.toString()).attr('fill', 'none')
+        .attr('stroke', strokeColor).attr('stroke-width', (isExtern ? 1.2 : 1.5) * flowWidth)
+        .attr('opacity', opacity)
+        .on('mouseover', function(event) {
+          d3.select(this).attr('opacity', 1).attr('stroke-width', 2);
+          showTT(event, { type:'mold_link', mold, part });
+        })
+        .on('mouseout', function() { d3.select(this).attr('opacity', opacity).attr('stroke-width', (isExtern?1.2:1.5)*flowWidth); hideTT(); });
+      applyAnim(el);
+    });
+  }
+
+  // ── Part → Machine flows
+  fgArr.forEach(fg => {
+    const machine = RAW.fg_to_machine[fg] || activeFilter || 'A-800';
+    const col = MACHINE_COLORS[machine] || '#666';
+    const my_fg = machinePos[machine];
+    if (!my_fg) return;
+    (RAW.fg_parts[fg] || []).forEach(part => {
+      if (!searchParts.has(part)) return;
+      const py = partPos[part]; if (!py) return;
+      const isShared = !!RAW.shared_parts[part];
+
+      if (isShared && !showShared) return;
+      if (!isShared && !showNormal) return;
+
+      const strokeColor = isShared ? '#ff4444' : col;
+      const baseOpacity = isShared ? 0.65 : 0.28;
+      const opacity = baseOpacity * flowOpacity;
+      const sw = (isShared ? 1.5 : 1) * flowWidth;
+
+      const path = d3.path();
+      path.moveTo(COL_P + 6, py);
+      path.bezierCurveTo(COL_P + 100, py, COL_M - 100, my_fg, COL_M - 18, my_fg);
+
+      const el = gFlows.append('path')
+        .attr('class', 'link').attr('d', path.toString()).attr('fill', 'none')
+        .attr('stroke', strokeColor).attr('stroke-width', sw).attr('opacity', opacity)
+        .on('mouseover', function(event) {
+          d3.select(this).attr('opacity', 1).attr('stroke-width', 2);
+          showTT(event, { type:'link', fg, part, machine, shared: isShared ? RAW.shared_parts[part] : null });
+        })
+        .on('mouseout', function() { d3.select(this).attr('opacity', opacity).attr('stroke-width', sw); hideTT(); });
+      applyAnim(el);
+    });
+  });
+
+  // ── Machine → FG flows
+  if (showFGflow) {
+    visibleMachines.forEach(m => {
+      const col = MACHINE_COLORS[m];
+      const my = machinePos[m];
+      (RAW.machine_fgs[m] || []).forEach(fg => {
+        if (!searchFGs.has(fg)) return;
+        const fy = fgPos[fg]; if (!fy) return;
+        const opacity = 0.25 * flowOpacity;
+        const sw = 1 * flowWidth;
+
+        const path = d3.path();
+        path.moveTo(COL_M + 58, my);
+        path.bezierCurveTo(COL_M + 130, my, COL_FG - 80, fy, COL_FG - 6, fy);
+
+        const el = gFlows.append('path')
+          .attr('d', path.toString()).attr('fill', 'none')
+          .attr('stroke', col).attr('stroke-width', sw).attr('opacity', opacity)
+          .on('mouseover', function(event) { d3.select(this).attr('opacity', .8).attr('stroke-width', 2); showTT(event, { type:'mfg', machine:m, fg }); })
+          .on('mouseout', function() { d3.select(this).attr('opacity', opacity).attr('stroke-width', sw); hideTT(); });
+        applyAnim(el);
+      });
+    });
+  }
+
+  // ── Machine nodes
+  visibleMachines.forEach(m => {
+    const col = MACHINE_COLORS[m];
+    const y = machinePos[m];
+    const fgCount = (RAW.machine_fgs[m] || []).filter(fg => searchFGs.has(fg)).length;
+    const partSet = new Set();
+    (RAW.machine_fgs[m] || []).filter(fg => searchFGs.has(fg))
+      .forEach(fg => (RAW.fg_parts[fg] || []).forEach(p => { if (searchParts.has(p)) partSet.add(p); }));
+
+    const grp = gNodes.append('g').attr('cursor', 'pointer').attr('transform', `translate(${COL_M},${y})`);
+
+    grp.append('rect')
+      .attr('x', -18).attr('y', -16).attr('width', 76).attr('height', 32)
+      .attr('rx', 6).attr('fill', 'rgba(255,255,255,0.03)').attr('stroke', col).attr('stroke-width', 1.5)
+      .style('filter', `drop-shadow(0 0 6px ${col}44)`);
+
+    grp.append('text')
+      .attr('x', 20).attr('y', 5).attr('text-anchor', 'middle').attr('fill', col)
+      .attr('font-family', 'Barlow Condensed, sans-serif').attr('font-weight', '700').attr('font-size', 13)
+      .text(m);
+
+    grp.on('mouseover', function(event) { showTT(event, { type:'machine', machine:m, fgCount, partCount:partSet.size }); })
+       .on('mouseout', hideTT)
+       .on('click', () => selectMachine(m));
+  });
+
+  // ── FG PN nodes
+  fgArr.forEach(fg => {
+    const machine = RAW.fg_to_machine[fg];
+    const machineForColor = (fg==='1-967644-1'&&activeFilter==='A-912')?'A-912':machine;
+    const col = MACHINE_COLORS[machineForColor] || '#666';
+    const y = fgPos[fg];
+    const partCount = (RAW.fg_parts[fg]||[]).filter(p=>searchParts.has(p)).length;
+
+    const grp = gNodes.append('g').attr('transform', `translate(${COL_FG},${y})`);
+    grp.append('circle').attr('r', 5).attr('fill', 'rgba(255,255,255,0.05)').attr('stroke', col).attr('stroke-width', 1.5);
+    grp.append('text').attr('x', 10).attr('y', 4).attr('fill', '#c0c8d8').attr('font-size', 9.5)
+      .attr('font-family', 'JetBrains Mono, monospace').text(fg);
+
+    grp.on('mouseover', function(event) {
+      d3.select(this).select('circle').attr('r', 7).attr('stroke-width', 2);
+      showTT(event, { type:'fg', fg, machine:machineForColor, partCount });
+    }).on('mouseout', function() {
+      d3.select(this).select('circle').attr('r', 5).attr('stroke-width', 1.5);
+      hideTT();
+    });
+  });
+
+  // ── Part PN nodes
+  partArr.forEach(part => {
+    const isShared = !!RAW.shared_parts[part];
+    const sharedMachines = RAW.shared_parts[part] || [];
+    const col = isShared ? '#ff6b6b' : '#38bdf8';
+    const y = partPos[part];
+
+    const grp = gNodes.append('g').attr('transform', `translate(${COL_P},${y})`);
+    grp.append('circle')
+      .attr('r', isShared ? 5 : 3.5)
+      .attr('fill', isShared ? 'rgba(255,68,68,0.15)' : 'rgba(56,189,248,0.08)')
+      .attr('stroke', col).attr('stroke-width', isShared ? 1.5 : 1)
+      .style('filter', isShared ? 'drop-shadow(0 0 4px #ff444488)' : 'none');
+    grp.append('text').attr('x', 10).attr('y', 4)
+      .attr('fill', isShared ? '#ff9999' : '#7090a8')
+      .attr('font-size', isShared ? 9.5 : 8.5)
+      .attr('font-family', 'JetBrains Mono, monospace')
+      .attr('font-weight', isShared ? '600' : '400')
+      .text(part);
+
+    grp.on('mouseover', function(event) {
+      d3.select(this).select('circle').attr('r', isShared ? 7 : 5);
+      showTT(event, { type:'part', part, isShared, sharedMachines });
+    }).on('mouseout', function() {
+      d3.select(this).select('circle').attr('r', isShared ? 5 : 3.5);
+      hideTT();
+    });
+  });
+
+  // ── Mold nodes
+  moldArr.forEach(mold => {
+    const y = moldPos[mold]; if (!y) return;
+    const isExtern = mold === 'EXTERN';
+    const col = isExtern ? '#3a5060' : '#28c870';
+    const partsForMold = partArr.filter(p => PART_MOLD[p] === mold);
+
+    const grp = gNodes.append('g').attr('transform', `translate(${COL_MOLD},${y})`);
+    if (isExtern) {
+      grp.append('circle').attr('r', 5).attr('fill', 'rgba(107,138,170,0.1)').attr('stroke', '#6b8aaa').attr('stroke-width', 1.2);
+      grp.append('text').attr('x', 0).attr('y', 18).attr('text-anchor', 'middle').attr('fill', '#6b8aaa').attr('font-size', 8.5).attr('font-family', 'JetBrains Mono, monospace').attr('font-weight', '600').text('EXTERN');
+    } else {
+      grp.append('rect').attr('x', -2).attr('y', -9).attr('width', 98).attr('height', 18).attr('rx', 4)
+        .attr('fill', 'rgba(40,200,112,0.07)').attr('stroke', col).attr('stroke-width', 1)
+        .style('filter', `drop-shadow(0 0 4px ${col}44)`);
+      grp.append('text').attr('x', 7).attr('y', 4.5).attr('fill', col).attr('font-size', 9.5)
+        .attr('font-family', 'JetBrains Mono, monospace').attr('font-weight', '600').text(mold);
+    }
+    grp.on('mouseover', function(event) { showTT(event, { type:'mold', mold, partsCount:partsForMold.length, parts:partsForMold }); }).on('mouseout', hideTT);
+  });
+
+  // Update stats
+  document.getElementById('s-machines').textContent = visibleMachines.length;
+  document.getElementById('s-fgs').textContent = fgArr.length;
+  document.getElementById('s-parts').textContent = partArr.length;
+  const sharedVisible = [...searchParts].filter(p => RAW.shared_parts[p]).length;
+  document.getElementById('s-shared').textContent = sharedVisible;
+
+  // Setup zoom
+  if (!zoomBehavior) {
+    zoomBehavior = d3.zoom().scaleExtent([0.15, 5]).on('zoom', (e) => {
+      currentTransform = e.transform;
+      svg.select('.zoom-g').attr('transform', e.transform);
+      const pct = Math.round(e.transform.k * 100);
+      document.getElementById('zoom-lbl').textContent = pct + '%';
+    });
+    svg.call(zoomBehavior);
+  }
+}
+
+// ====== ANIMATION ======
+function startAnim() {
+  cancelAnimationFrame(animRaf);
+  (function loop() {
+    if (animating) {
+      dashOffset -= animSpeed * 0.4;
+      // Update dashoffset on all animated paths
+      svg.selectAll('path').filter(function() {
+        return d3.select(this).attr('stroke-dasharray') !== null;
+      }).attr('stroke-dashoffset', dashOffset);
+    }
+    animRaf = requestAnimationFrame(loop);
+  })();
+}
+
+function toggleAnimate() {
+  animating = !animating;
+  const btn = document.getElementById('btn-anim');
+  const dot = document.getElementById('anim-dot');
+  if (!animating) {
+    btn.style.cssText = 'background:transparent;color:var(--text);border:1px solid var(--border2)';
+    dot.style.animationPlayState = 'paused';
+    svg.selectAll('path').attr('stroke-dasharray', null).attr('stroke-dashoffset', null);
+  } else {
+    btn.style.cssText = 'background:var(--accent);color:#000;border:none';
+    dot.style.animationPlayState = 'running';
+    render(); // redraw with dasharray
+  }
+}
+
+startAnim();
+
+// ====== MODE ======
+function setMode(m) {
+  viewMode = m;
+  document.getElementById('btn-fg').classList.toggle('active', m === 'fg');
+  document.getElementById('btn-shared').classList.toggle('active', m === 'shared');
+  render();
+}
+
+// ====== SLIDERS ======
+function setOpacity(v) { flowOpacity = v / 100; document.getElementById('v-opacity').textContent = v + '%'; render(); }
+function setWidth(v)   { flowWidth = +v;        document.getElementById('v-width').textContent = v + '×'; render(); }
+function setSpeed(v)   { animSpeed = +v;        document.getElementById('v-speed').textContent = v + '×'; }
+
+// ====== TOOLTIP ======
+const tt = document.getElementById('tooltip');
+function showTT(event, data) {
+  let html = '';
+  if (data.type === 'machine') {
+    html = `<div class="tt-title">${data.machine}</div>
+      <div class="tt-row"><span class="tt-lbl">FG PNs</span><span class="tt-val">${data.fgCount}</span></div>
+      <div class="tt-row"><span class="tt-lbl">Component PNs</span><span class="tt-val">${data.partCount}</span></div>`;
+  } else if (data.type === 'fg') {
+    const col = MACHINE_COLORS[data.machine] || '#666';
+    html = `<div class="tt-title">${data.fg}</div>
+      <div class="tt-row"><span class="tt-lbl">Machine</span><span class="tt-val" style="color:${col}">${data.machine}</span></div>
+      <div class="tt-row"><span class="tt-lbl">Components</span><span class="tt-val">${data.partCount}</span></div>`;
+  } else if (data.type === 'part') {
+    html = `<div class="tt-title">${data.part}</div>`;
+    if (data.isShared) {
+      html += `<div class="tt-badge">⚠ Shared PN</div>
+        <div class="tt-row" style="margin-top:6px"><span class="tt-lbl">Used in</span><span class="tt-val">${data.sharedMachines.join(', ')}</span></div>`;
+    } else {
+      html += `<div class="tt-row"><span class="tt-lbl">Type</span><span class="tt-val">Component PN</span></div>`;
+    }
+  } else if (data.type === 'link') {
+    const col = MACHINE_COLORS[data.machine] || '#666';
+    html = `<div class="tt-title">Flow Connection</div>
+      <div class="tt-row"><span class="tt-lbl">FG PN</span><span class="tt-val">${data.fg}</span></div>
+      <div class="tt-row"><span class="tt-lbl">Part PN</span><span class="tt-val">${data.part}</span></div>
+      <div class="tt-row"><span class="tt-lbl">Machine</span><span class="tt-val" style="color:${col}">${data.machine}</span></div>`;
+    if (data.shared) html += `<div class="tt-badge">⚠ Shared: ${data.shared.join(', ')}</div>`;
+  } else if (data.type === 'mold') {
+    const isExtern = data.mold === 'EXTERN';
+    html = `<div class="tt-title">${isExtern ? '📦 EXTERN' : '🔩 ' + data.mold}</div>
+      <div class="tt-row"><span class="tt-lbl">Type</span><span class="tt-val">${isExtern ? 'External part' : 'Internal mold'}</span></div>
+      <div class="tt-row"><span class="tt-lbl">Parts using</span><span class="tt-val">${data.partsCount}</span></div>`;
+  } else if (data.type === 'mold_link') {
+    html = `<div class="tt-title">Mold → Part</div>
+      <div class="tt-row"><span class="tt-lbl">Mold</span><span class="tt-val">${data.mold}</span></div>
+      <div class="tt-row"><span class="tt-lbl">Part PN</span><span class="tt-val">${data.part}</span></div>`;
+  } else if (data.type === 'mfg') {
+    const col = MACHINE_COLORS[data.machine] || '#666';
+    html = `<div class="tt-title">Assembly Flow</div>
+      <div class="tt-row"><span class="tt-lbl">Machine</span><span class="tt-val" style="color:${col}">${data.machine}</span></div>
+      <div class="tt-row"><span class="tt-lbl">FG PN</span><span class="tt-val">${data.fg}</span></div>`;
+  }
+  document.getElementById('tt-title').innerHTML = '';
+  document.getElementById('tt-body').innerHTML = html;
+  tt.classList.add('show');
+  moveTT(event);
+}
+function moveTT(event) {
+  const x = event.clientX + 14, y = event.clientY - 10;
+  const tw = tt.offsetWidth, th = tt.offsetHeight;
+  tt.style.left = (x + tw > window.innerWidth ? x - tw - 28 : x) + 'px';
+  tt.style.top  = (y + th > window.innerHeight ? y - th : y) + 'px';
+}
+function hideTT() { tt.classList.remove('show'); }
+svg.on('mousemove', moveTT);
+
+// ====== SIDEBAR TOGGLE ======
+let sidebarOpen = true;
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const tog = document.getElementById('sb-toggle');
+  const main = document.getElementById('main-area');
+  const wm = document.getElementById('te-wm');
+  sidebarOpen = !sidebarOpen;
+  sb.classList.toggle('collapsed', !sidebarOpen);
+  tog.textContent = sidebarOpen ? '‹' : '›';
+  tog.style.left = sidebarOpen ? '220px' : '0px';
+  main.classList.toggle('full', !sidebarOpen);
+  wm.classList.toggle('full', !sidebarOpen);
+  setTimeout(() => render(), 270);
+}
+document.getElementById('sb-toggle').style.left = '220px';
+
+// ====== SEARCH ======
+document.getElementById('search').addEventListener('input', e => { searchTerm = e.target.value.trim(); render(); });
+
+// ====== ZOOM ======
+function zoomStep(factor) { svg.transition().duration(220).call(zoomBehavior.scaleBy, factor); }
+function resetZoom() { svg.transition().duration(300).call(zoomBehavior.transform, d3.zoomIdentity); }
+
+// ====== INIT ======
+render();
+window.addEventListener('resize', render);
+</script>
+</body>
+</html>
